@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import jw.srb.core.enums.BorrowerStatusEnum;
+import jw.srb.core.enums.IntegralEnum;
 import jw.srb.core.mapper.BorrowerAttachMapper;
 import jw.srb.core.mapper.BorrowerMapper;
 import jw.srb.core.mapper.UserInfoMapper;
@@ -16,11 +17,14 @@ import jw.srb.core.mapper.UserIntegralMapper;
 import jw.srb.core.pojo.entity.Borrower;
 import jw.srb.core.pojo.entity.BorrowerAttach;
 import jw.srb.core.pojo.entity.UserInfo;
+import jw.srb.core.pojo.entity.UserIntegral;
 import jw.srb.core.pojo.vo.BorrowerApprovalVO;
+import jw.srb.core.pojo.vo.BorrowerAttachVO;
 import jw.srb.core.pojo.vo.BorrowerDetailVO;
 import jw.srb.core.pojo.vo.BorrowerVO;
 import jw.srb.core.service.BorrowerAttachService;
 import jw.srb.core.service.BorrowerService;
+import jw.srb.core.service.DictService;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -49,8 +53,8 @@ public class BorrowerServiceImpl extends ServiceImpl<BorrowerMapper, Borrower> i
     @Resource
     private BorrowerAttachService borrowerAttachService = null;
 
-//    @Resource
-//    private DictService dictService=null;
+    @Resource
+    private DictService dictService = null;
 
     @Resource
     private UserIntegralMapper userIntegralMapper = null;
@@ -124,13 +128,89 @@ public class BorrowerServiceImpl extends ServiceImpl<BorrowerMapper, Borrower> i
         borrowerDetailVO.setSex(borrower.getSex() == 1 ? "男" : "女");
 
         //下拉列表
-        borrowerDetailVO.setEducation()
+        borrowerDetailVO.setEducation(dictService.getNameByParentDictCodeAndValue("education", borrower.getEducation()));
+        borrowerDetailVO.setIndustry(dictService.getNameByParentDictCodeAndValue("industry", borrower.getIndustry()));
+        borrowerDetailVO.setReturnSource(dictService.getNameByParentDictCodeAndValue("income", borrower.getIncome()));
+        borrowerDetailVO.setReturnSource(dictService.getNameByParentDictCodeAndValue("returnSource", borrower.getReturnSource()));
+        borrowerDetailVO.setContactsRelation(dictService.getNameByParentDictCodeAndValue("relation", borrower.getContactsRelation()));
 
-        return null;
+        //审批状态
+        String status = BorrowerStatusEnum.getMsgByStatus(borrower.getStatus());
+        borrowerDetailVO.setStatus(status);
+
+        //附件列表
+        List<BorrowerAttachVO> borrowerAttachVOList = borrowerAttachService.selectBorrowerAttachVOList(id);
+        borrowerDetailVO.setBorrowerAttachVOList(borrowerAttachVOList);
+        return borrowerDetailVO;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     @Override
     public void approval(BorrowerApprovalVO borrowerApprovalVO) {
+        //获取借款额度申请id
+        Long borrowerId = borrowerApprovalVO.getBorrowerId();
 
+        //获取借款额度申请对象
+        Borrower borrower = baseMapper.selectById(borrowerId);
+
+        //设置审核状态
+        borrower.setStatus(borrowerApprovalVO.getStatus());
+        baseMapper.updateById(borrower);
+
+        //获取用户id
+        Long userId = borrower.getUserId();
+
+        //获取用户对象
+        UserInfo userInfo = userInfoMapper.selectById(userId);
+
+        //用户原始积分
+        Integer integral = userInfo.getIntegral();
+
+        //计算基本信息积分
+        UserIntegral userIntegral = new UserIntegral();
+        userIntegral.setUserId(userId);
+        userIntegral.setIntegral(borrowerApprovalVO.getInfoIntegral());
+        userIntegral.setContent("借款人基本信息");
+        userIntegralMapper.insert(userIntegral);
+        int currentIntegral = integral + borrowerApprovalVO.getInfoIntegral();
+
+        //身份证积分
+        if (borrowerApprovalVO.getIsIdCardOk()) {
+            userIntegral = new UserIntegral();
+            userIntegral.setUserId(userId);
+            userIntegral.setIntegral(IntegralEnum.BORROWER_IDCARD.getIntegral());
+            userIntegral.setContent(IntegralEnum.BORROWER_IDCARD.getMsg());
+            userIntegralMapper.insert(userIntegral);
+            currentIntegral += IntegralEnum.BORROWER_IDCARD.getIntegral();
+        }
+
+        //房产积分
+        if (borrowerApprovalVO.getIsHouseOk()) {
+            userIntegral = new UserIntegral();
+            userIntegral.setUserId(userId);
+            userIntegral.setIntegral(IntegralEnum.BORROWER_HOUSE.getIntegral());
+            userIntegral.setContent(IntegralEnum.BORROWER_HOUSE.getMsg());
+            userIntegralMapper.insert(userIntegral);
+            currentIntegral += IntegralEnum.BORROWER_HOUSE.getIntegral();
+        }
+
+        //车辆积分
+        if (borrowerApprovalVO.getIsCarOk()) {
+            userIntegral = new UserIntegral();
+            userIntegral.setUserId(userId);
+            userIntegral.setIntegral(IntegralEnum.BORROWER_CAR.getIntegral());
+            userIntegral.setContent(IntegralEnum.BORROWER_CAR.getMsg());
+            userIntegralMapper.insert(userIntegral);
+            currentIntegral += IntegralEnum.BORROWER_CAR.getIntegral();
+        }
+
+        //设置用户总积分
+        userInfo.setIntegral(currentIntegral);
+
+        //修改审核状态
+        userInfo.setBorrowAuthStatus(borrowerApprovalVO.getStatus());
+
+        //更新userInfo
+        userInfoMapper.updateById(userInfo);
     }
 }
