@@ -15,9 +15,11 @@ import jw.srb.core.hfb.RequestHelper;
 import jw.srb.core.mapper.UserBindMapper;
 import jw.srb.core.mapper.UserInfoMapper;
 import jw.srb.core.pojo.entity.UserBind;
+import jw.srb.core.pojo.entity.UserInfo;
 import jw.srb.core.pojo.vo.UserBindVO;
 import jw.srb.core.service.UserBindService;
 import org.springframework.beans.BeanUtils;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
@@ -32,6 +34,7 @@ import java.util.Map;
  * @createDate 2021/9/13 15:55
  * @updateDate 2021/9/13 15:55
  **/
+@Service
 public class UserBindServiceImpl extends ServiceImpl<UserBindMapper, UserBind> implements UserBindService {
     @Resource
     private UserInfoMapper userInfoMapper = null;
@@ -90,10 +93,30 @@ public class UserBindServiceImpl extends ServiceImpl<UserBindMapper, UserBind> i
         String agentUserId = String.valueOf(paramMap.get("agentUserId"));
 
         //根据user_id查询user_bind记录
+        QueryWrapper<UserBind> userBindQueryWrapper = new QueryWrapper<>();
+        userBindQueryWrapper.eq("user_id", agentUserId);
+
+        //更新用户绑定表
+        UserBind userBind = baseMapper.selectOne(userBindQueryWrapper);
+        userBind.setBindCode(bindCode);
+        userBind.setStatus(UserBindEnum.BIND_OK.getStatus());
+        baseMapper.updateById(userBind);
+
+
+        //更新用户表
+        UserInfo userInfo = userInfoMapper.selectById(agentUserId);
+        userInfo.setBindCode(bindCode);
+        userInfo.setName(userBind.getName());
+        userInfo.setIdCard(userBind.getIdCard());
+        userInfo.setBindStatus(UserBindEnum.BIND_OK.getStatus());
+        userInfoMapper.updateById(userInfo);
     }
 
     @Override
     public String getBindCodeByUserId(Long userId) {
-        return null;
+        QueryWrapper<UserBind> userBindQueryWrapper = new QueryWrapper<>();
+        userBindQueryWrapper.eq("user_id", userId);
+        UserBind userBind = baseMapper.selectOne(userBindQueryWrapper);
+        return userBind.getBindCode();
     }
 }
