@@ -5,14 +5,18 @@ package jw.srb.core.service.impl;/**
  */
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import jw.srb.core.mapper.BorrowerMapper;
 import jw.srb.core.mapper.LendMapper;
+import jw.srb.core.mapper.UserAccountMapper;
+import jw.srb.core.mapper.UserInfoMapper;
 import jw.srb.core.pojo.entity.BorrowInfo;
 import jw.srb.core.pojo.entity.Lend;
 import jw.srb.core.pojo.vo.BorrowInfoApprovalVO;
-import jw.srb.core.service.LendService;
+import jw.srb.core.service.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +32,34 @@ import java.util.Map;
 @Slf4j
 @Service
 public class LendServiceImpl extends ServiceImpl<LendMapper, Lend> implements LendService {
+
+    @Resource
+    private DictService dictService;
+
+    @Resource
+    private BorrowerMapper borrowerMapper;
+
+    @Resource
+    private BorrowerService borrowerService;
+
+    @Resource
+    private UserInfoMapper userInfoMapper;
+
+    @Resource
+    private UserAccountMapper userAccountMapper;
+
+    @Resource
+    private LendItemService lendItemService;
+
+    @Resource
+    private TransFlowService transFlowService;
+
+    @Resource
+    private LendReturnService lendReturnService;
+
+    @Resource
+    private LendItemReturnService lendItemReturnService;
+
     @Override
     public void createLend(BorrowInfoApprovalVO borrowInfoApprovalVO, BorrowInfo borrowInfo) {
 
