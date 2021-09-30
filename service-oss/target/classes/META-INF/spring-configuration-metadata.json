@@ -1,0 +1,11 @@
+{
+  "groups": [
+    {
+      "name": "aliyun.oss",
+      "type": "jw.srb.oss.util.OssProperties",
+      "sourceType": "jw.srb.oss.util.OssProperties"
+    }
+  ],
+  "properties": [],
+  "hints": []
+}

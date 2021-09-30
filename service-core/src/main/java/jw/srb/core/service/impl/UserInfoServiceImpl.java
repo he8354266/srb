@@ -22,6 +22,7 @@ import jw.srb.core.pojo.vo.RegisterVO;
 import jw.srb.core.pojo.vo.UserIndexVO;
 import jw.srb.core.pojo.vo.UserInfoVO;
 import jw.srb.core.service.UserInfoService;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
@@ -34,6 +35,7 @@ import javax.annotation.Resource;
  * @createDate 2021/9/23 16:30
  * @updateDate 2021/9/23 16:30
  **/
+@Service
 public class UserInfoServiceImpl extends ServiceImpl<UserInfoMapper, UserInfo> implements UserInfoService {
     @Resource
     private UserAccountMapper userAccountMapper = null;
